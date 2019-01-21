@@ -51,7 +51,7 @@ server.post("/api/login", (req, res) => {
 // Protect this route, only authenticated users should see it
 server.get("/api/users", (req, res) => {
   db("users")
-    .select("id", "username", "password")
+    .select("id", "username")
     .then(users => {
       res.json(users);
     })
