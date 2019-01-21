@@ -15,6 +15,15 @@ server.get("/", (req, res) => {
   res.send("Keep coding, it's Working");
 });
 
+server.get("/api/users", (req, res) => {
+  db("users")
+    .select("id", "username")
+    .then(users => {
+      res.json(users);
+    })
+    .catch(err => res.send(err));
+});
+
 const port = 3300;
 server.listen(port, () =>
   console.log(`Server running on http://localhost:${port}`)
