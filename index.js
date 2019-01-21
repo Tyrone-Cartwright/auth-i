@@ -29,10 +29,29 @@ server.post("/api/register", (req, res) => {
     .catch(err => json(err));
 });
 
+server.post("/api/login", (req, res) => {
+  // Grab the username and password from body
+  const creds = req.body;
+
+  db("users")
+    .where({ username: creds.username })
+    .first()
+    .then(user => {
+      if (user && bcrypt.compareSync(creds.password, user.password)) {
+        // passwords match and the user exists by the username
+        res.status(200).json({ message: "Thank you for signing in!" });
+      } else {
+        // either username is invalid or password is wrong
+        res.status(401).json({ message: "Please enter valid information!" });
+      }
+    })
+    .catch(err => res.json(err));
+});
+
 // Protect this route, only authenticated users should see it
 server.get("/api/users", (req, res) => {
   db("users")
-    .select("id", "username")
+    .select("id", "username", "password")
     .then(users => {
       res.json(users);
     })
