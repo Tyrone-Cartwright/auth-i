@@ -2,11 +2,26 @@ const express = require("express");
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
-const bcrypt = require("bcryptjs"); // Added package and required it here
+const bcrypt = require("bcryptjs");
+const session = require("express-session"); // added library
 
 const db = require("../database/dbConfig.js");
 
 const server = express();
+
+const sessionConfig = {
+  secret: "nobody||tosses%a.dwarf.!",
+  name: "monkey", // defaults to connect.sid
+  httpOnly: true, // JS can't access this
+  resave: false,
+  saveUninitialized: false, // laws!
+  cookie: {
+    secure: false, // over httpS
+    maxAge: 1 * 24 * 60 * 60 * 1000
+  }
+};
+
+server.use(session(sessionConfig));
 
 server.use(helmet());
 server.use(morgan("short"));
@@ -32,12 +47,12 @@ server.post("/api/register", (req, res) => {
 server.post("/api/login", (req, res) => {
   // Grab the username and password from body
   const creds = req.body;
-
   db("users")
     .where({ username: creds.username })
     .first()
     .then(user => {
       if (user && bcrypt.compareSync(creds.password, user.password)) {
+        req.session.username = user.username;
         // passwords match and the user exists by the username
         res.status(200).json({ message: "Thank you for signing in!" });
       } else {
@@ -50,12 +65,16 @@ server.post("/api/login", (req, res) => {
 
 // Protect this route, only authenticated users should see it
 server.get("/api/users", (req, res) => {
-  db("users")
-    .select("id", "username")
-    .then(users => {
-      res.json(users);
-    })
-    .catch(err => res.send(err));
+  if (req.session && req.session.username) {
+    db("users")
+      .select("id", "username")
+      .then(users => {
+        res.json(users);
+      })
+      .catch(err => res.send(err));
+  } else {
+    res.status(401).send("Not permitted");
+  }
 });
 
 module.exports = server;
