@@ -4,12 +4,20 @@ const helmet = require("helmet");
 const morgan = require("morgan");
 const bcrypt = require("bcryptjs");
 const session = require("express-session"); // added library
+const KnexSessionStore = require("connect-session-knex")(session);
 
 const db = require("../database/dbConfig.js");
 
 const server = express();
 
 const sessionConfig = {
+  store: new KnexSessionStore({
+    tablename: "session",
+    sidfieldname: "sid",
+    knex: db,
+    createtable: true,
+    clearInterval: 1000 * 60 * 60 // removes only expires sessions
+  }),
   secret: "nobody||tosses%a.dwarf.!",
   name: "monkey", // defaults to connect.sid
   httpOnly: true, // JS can't access this
