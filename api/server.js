@@ -32,16 +32,18 @@ server.post("/api/register", (req, res) => {
   // Grab the username and password from body
   const creds = req.body;
   // generate the hash from the user's password
-  const hash = bcrypt.hashSync(creds.password, 14); // rounds is 2^X
+  const hash = bcrypt.hashSync(creds.password, 10); // rounds is 2^X
   // override the user.password with the hash
   creds.password = hash;
   // save the user to the database
   db("users")
     .insert(creds)
     .then(ids => {
-      res.status(201).json(ids);
+      const id = ids[0];
+      req.session.username = creds.username;
+      res.status(201).json({ newUserId: id });
     })
-    .catch(err => json(err));
+    .catch(err => res.json(err));
 });
 
 server.post("/api/login", (req, res) => {
@@ -64,17 +66,34 @@ server.post("/api/login", (req, res) => {
 });
 
 // Protect this route, only authenticated users should see it
-server.get("/api/users", (req, res) => {
-  if (req.session && req.session.username) {
-    db("users")
-      .select("id", "username")
-      .then(users => {
-        res.json(users);
-      })
-      .catch(err => res.send(err));
-  } else {
-    res.status(401).send("Not permitted");
+server.get("/api/users", protected, (req, res) => {
+  db("users")
+    .select("id", "username")
+    .then(users => {
+      res.json(users);
+    })
+    .catch(err => res.send(err));
+});
+
+server.get("/logout", (req, res) => {
+  if (req.session) {
+    req.session.destroy(err => {
+      if (err) {
+        res.send("Unable to logout");
+      } else {
+        res.send("You are logged out");
+      }
+    });
   }
 });
+
+// Protected Middleware
+function protected(req, res, next) {
+  if (req.session && req.session.username) {
+    next();
+  } else {
+    res.status(401).json("Not permitted");
+  }
+}
 
 module.exports = server;
