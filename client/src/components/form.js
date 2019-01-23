@@ -3,7 +3,10 @@ import React from "react";
 class form extends React.Component {
   constructor(props) {
     super(props);
-    this.state = {};
+    this.state = {
+      username: " ",
+      password: " "
+    };
   }
   render() {
     return (
